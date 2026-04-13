@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="viewport" content="width=device-width">
+		<link rel="stylesheet" href="styles.css">
+		<title>Terrain generation toy</title>
+	</head>
+	
+	<body>
+		<h1 style="text-align: center">Terrain generation toy</h1>
+		<div id="controlPanel">
+			<table>
+				<thead>
+					<th scope="col"><h3>Setting</h3></th>
+					<th scope="col"><h3>Description<h3></th>
+				</thead>
+				<tbody>
+					<tr>
+						<th scope="col"><button id="randomFill">Randomize</button></th>
+						<th scope="col">Randomizes the grid, filling it with LAND and WATER tiles</th>
+					</tr>
+					
+					<tr>
+						<th scope="col">
+							<input id="biasAmount" type="number" min="0" max="100" value="50"></input>
+						</th>
+						<th scope="col">Biases the amount of LAND versus WATER tiles that the Randomize function fills in the grid (default value is 50%)</th>
+					</tr>
+					
+					<tr>
+						<th scope="col"><button id="cellAuto">Cellular Automata</button></th>
+						<th scope="col">Applies the cellular automata to the grid</th>
+					</tr>
+					<tr>
+						<th scope="col">
+							<select id="neighborhoodSize">
+								<option value=1>1</option>
+								<option value=2>2</option>
+								<option value=3>3</option>
+								<option value=4>4</option>
+							</select>
+						</th>
+						<th scope="col">Neighborhood size for the cellular automata (for creating landmasses)</th>
+					</tr>
+					<tr>
+						<th scope="col"><button id="refineTerrain">Refine Terrain</button></th>
+						<th scope="col">Adds Coastlines and different water "depths" to the grid</th>
+					</tr>
+
+				</tbody>
+			</table>
+		</div>
+		<canvas id="myCanvas">
+		<script src="terraingen.js" type="text/javascript"></script>
+	</body>
+</html>
