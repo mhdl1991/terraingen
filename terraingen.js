@@ -3,8 +3,8 @@ const ctx = canvas.getContext('2d')
 
 const WIDTH = 800
 const HEIGHT = 800
-const TILE_WIDTH = 2
-const TILE_HEIGHT = 2
+const TILE_WIDTH = 4
+const TILE_HEIGHT = 4
 
 const MAP_WIDTH = WIDTH / TILE_WIDTH
 const MAP_HEIGHT = HEIGHT / TILE_HEIGHT
@@ -23,7 +23,7 @@ const LAND_TYPES = {
 	SHORE : {id: 1, color: 'rgb(220, 200, 96)',isLand: true},
 	
 	// forest
-	FOREST : {id: 2, color: 'rgb(0, 200, 32)',isLand: true},
+	FOREST : {id: 2, color: 'rgb(0, 176, 64)',isLand: true},
 	
 	WATER : {id: 3, color: 'rgb(32,120,250)',isLand: false},
 	DEEP_WATER : {id: 4, color: 'rgb(8,64,240)',isLand: false},
@@ -34,6 +34,8 @@ const LAND_TYPES = {
 
 const isLand = (t) => {return t.isLand === true }
 const isWater = (t) => {return t.isLand === false }
+const isForest = (t) => {return t === LAND_TYPES.FOREST}
+const isShore = (t) => {return t === LAND_TYPES.SHORE}
 
 const randomizeMap = (width, height, bias) => { 
 	arr = []
@@ -49,7 +51,7 @@ const randomizeMap = (width, height, bias) => {
 
 // get neighbors in surrounding cells
 const getNeighbors = (map, x, y, width, height, radius) => {
-		let land_count = 0, water_count = 0, dx, dy, new_x, new_y
+		let land_count = 0, water_count = 0, forest_count = 0, current, dx, dy, new_x, new_y
 		
 		n = Math.max( 1, Math.abs(radius) )
 		
@@ -59,11 +61,15 @@ const getNeighbors = (map, x, y, width, height, radius) => {
 				if (dx == 0 && dy == 0) {continue}
 				new_x = (x + dx + width) % width
 				new_y = (y + dy + height) % height
-				if (isLand(map[new_y][new_x])) {land_count++}
-				if (isWater(map[new_y][new_x])) {water_count++}
+				current = map[new_y][new_x]
+				if (isLand(current)) {
+					land_count++
+					if (isForest(current)) {forest_count++}
+				}
+				if (isWater(current)) {water_count++}
 			}
 		}
-		return {land: land_count, water: water_count}
+		return {land: land_count, water: water_count, forest: forest_count}
 }
 	
 // update map according to rules
@@ -71,20 +77,21 @@ const updateMap = (oldmap, width, height, radius) => {
 
 	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
 					
-	let x, y, neighbors
+	let x, y, neighbors, current
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			newmap[y][x] = oldmap[y][x]
+			current = oldmap[y][x]
+			newmap[y][x] = current
 			
 			// check the surrounding tiles in the neighborhood
 			// update the map according to those rules
 			neighbors = getNeighbors(oldmap,x,y,width,height,radius)
 
-			if (isWater(oldmap[y][x])) {
+			if (isWater(current)) {
 				if (neighbors.land > neighbors.water) {newmap[y][x] = LAND_TYPES.LAND}
 			}
 			
-			if (isLand(oldmap[y][x])) {
+			if (isLand(current)) {
 				if (neighbors.water > neighbors.land) {newmap[y][x] = LAND_TYPES.WATER}
 			}
 			
@@ -99,28 +106,24 @@ const refineMap = (oldmap, width, height) => {
 
 	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
 					
-	let x, y, neighbors
+	let x, y, neighbors, current
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
-			newmap[y][x] = oldmap[y][x]
+			current = oldmap[y][x]
+			newmap[y][x] = current //oldmap[y][x]
 			
 			// check the surrounding tiles
 			neighbors = getNeighbors(oldmap,x,y,width,height,5)
 
-			if (isWater(oldmap[y][x])) {
+			if (isWater(current)) {
 				if (neighbors.land > neighbors.water/2) {newmap[y][x] = LAND_TYPES.WATER}
 				else if (neighbors.land < neighbors.water/10) {newmap[y][x] = LAND_TYPES.DEEPER_WATER}
 				else {newmap[y][x] = LAND_TYPES.DEEP_WATER}
 			}
 			
-			if (isLand(oldmap[y][x])) {
+			if (isLand(current)) { 
 				if (neighbors.water > neighbors.land/2) {newmap[y][x] = LAND_TYPES.SHORE}
-				//else {
-					// random forests
-				//	if (Math.random() > 0.5) { newmap[y][x] = LAND_TYPES.FOREST}
-				//}
 			}
-			
 		}
 	}
 	
@@ -128,14 +131,52 @@ const refineMap = (oldmap, width, height) => {
 }
 
 // grow plants?
-const forests = (oldmap, width, height) => {
-	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
+const addForests = (oldmap, width, height) => {
 	
+	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )			
+	let x, y, neighbors, current
+	for (y = 0; y < height; y++) {
+		for (x = 0; x < width; x++) {
+			current = oldmap[y][x]
+			newmap[y][x] = current
+
+			if (isLand(current) && !isShore(current) ) {
+				if (Math.random() > 0.6) { newmap[y][x] = LAND_TYPES.FOREST} else { newmap[y][x] = LAND_TYPES.LAND }
+			}
+		}
+	}
 	
 	return newmap
 }
 
-
+const stepForests = (oldmap, width, height) => {
+	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
+	
+	let x, y, neighbors, current
+	for (y = 0; y < height; y++) {
+		for (x = 0; x < width; x++) {
+			current = oldmap[y][x]
+			newmap[y][x] = current //oldmap[y][x]
+			
+			// check the surrounding tiles
+			neighbors = getNeighbors(oldmap,x,y,width,height,1)
+			if (isLand(current) && !isShore(current)) {
+				
+				if (neighbors.forest in [0, 1, 2, 3, 7])  {	
+					newmap[y][x] = LAND_TYPES.LAND
+				}
+				
+				if (neighbors.forest in [4, 8])  {
+					newmap[y][x] = LAND_TYPES.FOREST
+				}
+				
+			}
+			
+		}
+	}
+	
+	return newmap
+}
 
 
 // draw the map on the screen
@@ -159,9 +200,6 @@ const drawMap = (map) => {
 
 // initialize
 const init = () => {
-	//map = randomizeMap( MAP_WIDTH, MAP_HEIGHT, 0.5 )
-	//for (let k = 0; k < 4; k++) { map = updateMap(map, MAP_WIDTH, MAP_HEIGHT, 1) }
-	//for (let k = 0; k < 1; k++) { map = refineMap(map, MAP_WIDTH, MAP_HEIGHT) }
 	map = Array(MAP_HEIGHT).fill(0).map( () => ( Array(MAP_WIDTH).fill(LAND_TYPES.WATER) ) )
 	drawMap(map)
 }
@@ -169,7 +207,9 @@ const init = () => {
 // Control panel
 const randomizeButton = document.getElementById('randomFill')
 const cellAutoButton = document.getElementById('cellAuto')
-const refineButton = document.getElementById('refineTerrain')
+const refineButton = document.getElementById('refineTerrain_coasts')
+const addForestButton = document.getElementById('addForests')
+const growForestButton = document.getElementById('refineTerrain_forests')
 const neighborhoodSizeSelect = document.getElementById('neighborhoodSize')
 const BiasInput = document.getElementById('biasAmount')
 const doEverything = document.getElementById('randomEverything')
@@ -182,12 +222,22 @@ const randomizeBtnFunc = () => {
 
 const cellAutoBtnFunc = () => {
 	let getRadius = neighborhoodSizeSelect.value
-	map = updateMap(map, MAP_WIDTH, MAP_HEIGHT, getRadius)
+	for (let k = 0; k < 4; k++) { map = updateMap(map, MAP_WIDTH, MAP_HEIGHT, getRadius) }
 	drawMap(map)
 }
 
 const refineBtnFunc = () => {
 	map = refineMap(map, MAP_WIDTH, MAP_HEIGHT)
+	drawMap(map)
+}
+
+const forestAddBtnFunc = () => {
+	map = addForests(map, MAP_WIDTH, MAP_HEIGHT)
+	drawMap(map)
+}
+
+const forestStepBtnFunc = () => {
+	map = stepForests(map, MAP_WIDTH, MAP_HEIGHT)
 	drawMap(map)
 }
 
@@ -200,6 +250,8 @@ const doAll = () => {
 	let k = 0
 	for (k = 0; k < choice(num_iterations); k++) { map = updateMap(map, MAP_WIDTH, MAP_HEIGHT, choice(possible_radii) ) }
 	for (k = 0; k < 1; k++) { map = refineMap(map, MAP_WIDTH, MAP_HEIGHT) }
+	map = addForests(map, MAP_WIDTH, MAP_HEIGHT)
+	for (k = 0; k < 10; k++) { map = stepForests(map, MAP_WIDTH, MAP_HEIGHT) }
 	
 	drawMap(map)
 }
@@ -210,6 +262,8 @@ const doAll = () => {
 randomizeButton.addEventListener('click', randomizeBtnFunc)
 cellAutoButton.addEventListener('click', cellAutoBtnFunc)
 refineButton.addEventListener('click', refineBtnFunc)
+growForestButton.addEventListener('click', forestStepBtnFunc)
+addForestButton.addEventListener('click', forestAddBtnFunc)
 doEverything.addEventListener('click', doAll)
 
 init()
