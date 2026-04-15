@@ -14,7 +14,9 @@ ctx.canvas.height = HEIGHT
 
 let map = []
 
+// utility
 const clamp = (num, min, max) => Math.min( Math.max(num, min), max)
+const choice = (_arr) => _arr[Math.floor(Math.random() * _arr.length)]
 
 const LAND_TYPES = {
 	LAND : {id: 0, color: 'rgb(32, 212, 64)', isLand: true},
@@ -113,10 +115,10 @@ const refineMap = (oldmap, width, height) => {
 			
 			if (isLand(oldmap[y][x])) {
 				if (neighbors.water > neighbors.land/2) {newmap[y][x] = LAND_TYPES.SHORE}
-				else {
+				//else {
 					// random forests
-					if (Math.random() > 0.5) { newmap[y][x] = LAND_TYPES.FOREST}
-				}
+				//	if (Math.random() > 0.5) { newmap[y][x] = LAND_TYPES.FOREST}
+				//}
 			}
 			
 		}
@@ -124,6 +126,17 @@ const refineMap = (oldmap, width, height) => {
 	
 	return newmap
 }
+
+// grow plants?
+const forests = (oldmap, width, height) => {
+	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
+	
+	
+	return newmap
+}
+
+
+
 
 // draw the map on the screen
 const drawMap = (map) => {
@@ -159,6 +172,7 @@ const cellAutoButton = document.getElementById('cellAuto')
 const refineButton = document.getElementById('refineTerrain')
 const neighborhoodSizeSelect = document.getElementById('neighborhoodSize')
 const BiasInput = document.getElementById('biasAmount')
+const doEverything = document.getElementById('randomEverything')
 
 const randomizeBtnFunc = () => {
 	let bias = clamp( Math.abs( parseInt( BiasInput.value )  ), 0, 100 ) / 100
@@ -177,9 +191,25 @@ const refineBtnFunc = () => {
 	drawMap(map)
 }
 
+const doAll = () => {
+	let bias = 0.5 //clamp( 45 + (Math.random() * 30) , 0, 100 ) / 100
+	map = randomizeMap(MAP_WIDTH, MAP_HEIGHT, bias)
+	
+	let possible_radii = [1,2,3,4]
+	let num_iterations = [3,4,5]
+	let k = 0
+	for (k = 0; k < choice(num_iterations); k++) { map = updateMap(map, MAP_WIDTH, MAP_HEIGHT, choice(possible_radii) ) }
+	for (k = 0; k < 1; k++) { map = refineMap(map, MAP_WIDTH, MAP_HEIGHT) }
+	
+	drawMap(map)
+}
+
+
+
 
 randomizeButton.addEventListener('click', randomizeBtnFunc)
 cellAutoButton.addEventListener('click', cellAutoBtnFunc)
 refineButton.addEventListener('click', refineBtnFunc)
+doEverything.addEventListener('click', doAll)
 
 init()
