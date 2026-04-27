@@ -8,6 +8,8 @@ const TILE_HEIGHT = 4
 
 const MAP_WIDTH = WIDTH / TILE_WIDTH
 const MAP_HEIGHT = HEIGHT / TILE_HEIGHT
+const _CONSTRAINED = false // make this a parameter of the function later
+
 
 ctx.canvas.width = WIDTH
 ctx.canvas.height = HEIGHT
@@ -59,6 +61,11 @@ const getNeighbors = (map, x, y, width, height, radius) => {
 			for (dx = -n; dx < n + 1; dx++) {
 				// if within bounds
 				if (dx == 0 && dy == 0) {continue}
+				
+				if (_CONSTRAINED) {
+					if (Math.abs(dx) + Math.abs(dy) > radius) {continue}
+				}
+				
 				new_x = (x + dx + width) % width
 				new_y = (y + dy + height) % height
 				current = map[new_y][new_x]
@@ -141,7 +148,7 @@ const addForests = (oldmap, width, height) => {
 			newmap[y][x] = current
 
 			if (isLand(current) && !isShore(current) ) {
-				if (Math.random() > 0.6) { newmap[y][x] = LAND_TYPES.FOREST} else { newmap[y][x] = LAND_TYPES.LAND }
+				if (Math.random() > 0.5) { newmap[y][x] = LAND_TYPES.FOREST} else { newmap[y][x] = LAND_TYPES.LAND }
 			}
 		}
 	}
@@ -149,9 +156,9 @@ const addForests = (oldmap, width, height) => {
 	return newmap
 }
 
+// forests use a cellular automata
 const stepForests = (oldmap, width, height) => {
 	let newmap = Array(height).fill(0).map( () => ( Array(width).fill(0) ) )
-	
 	let x, y, neighbors, current
 	for (y = 0; y < height; y++) {
 		for (x = 0; x < width; x++) {
@@ -162,22 +169,18 @@ const stepForests = (oldmap, width, height) => {
 			neighbors = getNeighbors(oldmap,x,y,width,height,1)
 			if (isLand(current) && !isShore(current)) {
 				
-				if (neighbors.forest in [0, 1, 2, 3, 7])  {	
+				if (neighbors.forest in [0, 1, 2, 3, 7])  {	// too many 
 					newmap[y][x] = LAND_TYPES.LAND
 				}
 				
-				if (neighbors.forest in [4, 8])  {
+				if (neighbors.forest in [4, 5, 8])  { // just right for growth
 					newmap[y][x] = LAND_TYPES.FOREST
-				}
-				
+				}	
 			}
-			
 		}
 	}
-	
 	return newmap
 }
-
 
 // draw the map on the screen
 const drawMap = (map) => {
